@@ -4,6 +4,7 @@ include config.mk
 TXT_FILES=$(wildcard $(TXT_DIR)/*.txt)
 DAT_FILES=$(patsubst $(TXT_DIR)/%.txt, %.dat, $(TXT_FILES))
 PNG_FILES=$(patsubst $(TXT_DIR)/%.txt, %.png, $(TXT_FILES))
+JPG_FILES=$(patsubst $(TXT_DIR)/%.txt, $(JPG_DIR)/%.jpg, $(TXT_FILES))
 
 # Macros:
 include config.mk
@@ -21,12 +22,27 @@ all : $(ZIPF_ARCHIVE)
 $(ZIPF_ARCHIVE) : $(ZIPF_DIR)
 	tar -czf $@ $<
 
-$(ZIPF_DIR): Makefile config.mk $(RESULTS_FILE) \
+$(ZIPF_DIR) : Makefile config.mk $(RESULTS_FILE) \
              $(DAT_FILES) $(PNG_FILES) $(TXT_DIR) \
              $(COUNT_SRC) $(PLOT_SRC) $(ZIPF_SRC)
 	mkdir -p $@
 	cp -r $^ $@
 	touch $@
+
+# Convert png plots to jpgs.
+## jpgs     : Converts png plots to jpgs and puts them in a new directory JPG_DIR.
+.PHONY : jpgs
+jpgs : $(JPG_FILES)
+
+$(JPG_DIR)/%.jpg : %.png
+	mkdir -p figures
+	convert $< $@
+
+# Get a zipped folder with jpg plots.
+## figures.zip     : Converts pngs to jpgs and archives them in figures.zip
+figures.zip : $(JPG_FILES)  
+	echo "JPGs wiith histograms of most frequent words in books" > $(JPG_DIR)/readme  
+	zip -r figures.zip figures
  
 # Count words.
 ## dats        : Count words in text files.
@@ -55,6 +71,7 @@ variables:
 	@echo TXT_DIR: $(TXT_DIR)
 	@echo ZIPF_DIR: $(ZIPF_DIR)
 	@echo ZIPF_ARCHIVE: $(ZIPF_ARCHIVE)
+	@echo JPG_FILES: $(JPG_FILES)
 # Clean.
 ## clean       : Remove auto-generated files.
 .PHONY : clean
@@ -64,7 +81,9 @@ clean :
 	rm -f $(PNG_FILES)
 	rm -rf $(ZIPF_DIR)
 	rm -f $(ZIPF_ARCHIVE)
-
+	rm -rf $(JPG_DIR)
+	rm -f figures.zip
+	
 # Help.
 .PHONY : help
 help : Makefile
